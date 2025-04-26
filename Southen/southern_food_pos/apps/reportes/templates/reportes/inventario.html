@@ -1,0 +1,673 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load reporte_tags %}
+
+{% block title %}Reporte de Inventario{% endblock %}
+{% block section_title %}Reporte de Inventario{% endblock %}
+{% block back_url %}{% url 'reportes:index' %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.tailwindcss.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Resumen de Inventario -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
+            <div class="text-white px-6 py-4" style="background-color: var(--primary-color);">
+                <h3 class="text-2xl font-bold flex items-center">
+                    <i data-lucide="package" class="w-6 h-6 mr-2"></i>Resumen de Inventario
+                </h3>
+            </div>
+            
+            <div class="p-6 bg-white dark:bg-gray-800">
+                <!-- Tarjetas de Resumen -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 dark:bg-blue-800/40 p-3 rounded-full mr-3">
+                                <i data-lucide="package" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">Total Productos</p>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_productos }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 dark:bg-green-800/40 p-3 rounded-full mr-3">
+                                <i data-lucide="dollar-sign" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">Valor Total</p>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-white">${{ valor_total|floatformat:2 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div class="flex items-center">
+                            <div class="bg-amber-100 dark:bg-amber-800/40 p-3 rounded-full mr-3">
+                                <i data-lucide="tag" class="w-6 h-6 text-amber-600 dark:text-amber-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">Categorías</p>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_categorias }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- For the Stock Bajo counter in the card at the top -->
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div class="flex items-center">
+                            <div class="bg-red-100 dark:bg-red-800/40 p-3 rounded-full mr-3">
+                                <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600 dark:text-red-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">Stock Bajo</p>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-white" id="stock-bajo-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pestañas de Inventario -->
+                <div x-data="{ activeTab: 'todos' }" x-cloak>
+                    <!-- Navegación de Pestañas -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
+                        <ul class="flex flex-wrap -mb-px">
+                            <li class="mr-2">
+                                <button type="button" @click="activeTab = 'todos'" :class="activeTab === 'todos' ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400'" class="inline-block py-4 px-4 text-sm font-medium border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">
+                                    Todos los Productos
+                                </button>
+                            </li>
+                            <!-- For the Stock Bajo tab button -->
+                            <li class="mr-2">
+                                <button type="button" data-tab="bajo" @click="activeTab = 'bajo'" :class="activeTab === 'bajo' ? 'border-red-500 text-red-600 dark:text-red-400 dark:border-red-400' : 'border-transparent text-gray-500 dark:text-gray-400'" class="inline-block py-4 px-4 text-sm font-medium border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">
+                                    Stock Bajo <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 text-xs font-medium px-2 py-0.5 rounded-full ml-2 stock-bajo-counter">0</span>
+                                </button>
+                            </li>
+                            <li class="mr-2">
+                                <button type="button" @click="activeTab = 'agotados'" :class="activeTab === 'agotados' ? 'border-gray-500 text-gray-600 dark:text-gray-400 dark:border-gray-400' : 'border-transparent text-gray-500 dark:text-gray-400'" class="inline-block py-4 px-4 text-sm font-medium border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">
+                                    Agotados <span class="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs font-medium px-2 py-0.5 rounded-full ml-2">{{ productos_agotados.count }}</span>
+                                </button>
+                            </li>
+                            <li class="mr-2">
+                                <button type="button" @click="activeTab = 'categorias'" :class="activeTab === 'categorias' ? 'border-amber-500 text-amber-600 dark:text-amber-400 dark:border-amber-400' : 'border-transparent text-gray-500 dark:text-gray-400'" class="inline-block py-4 px-4 text-sm font-medium border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300">
+                                    Por Categoría
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Contenido de Pestañas -->
+                    <div x-show="activeTab === 'todos'" style="display: none;">
+                        <table id="tabla-productos" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Producto</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Precio</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for producto in productos %}
+                                <tr class="{% if producto.stock == 0 %}bg-red-50 dark:bg-red-900/20{% elif producto.stock < 10 %}bg-amber-50 dark:bg-amber-900/20{% endif %}">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            {% if producto.imagen %}
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
+                                            </div>
+                                            {% else %}
+                                            <div class="flex-shrink-0 h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                                <i data-lucide="package" class="h-5 w-5 text-gray-500 dark:text-gray-400"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ producto.nombre }}</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">SKU: {{ producto.sku|default:"N/A" }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                            {{ producto.categoria.nombre }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if producto.stock == 0 %}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                            Agotado
+                                        </span>
+                                        {% elif producto.stock < 10 %}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                                            {{ producto.stock }} unidades
+                                        </span>
+                                        {% else %}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                            {{ producto.stock }} unidades
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${{ producto.precio|floatformat:2 }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${{ producto.precio|multiply:producto.stock|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div x-show="activeTab === 'bajo'" style="display: none;">
+                        <table id="tabla-bajo-stock" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Producto</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Precio</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for producto in productos_stock_bajo %}
+                                {% if producto.stock > 0 %}
+                                <tr class="bg-amber-50 dark:bg-amber-900/20">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            {% if producto.imagen %}
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
+                                            </div>
+                                            {% else %}
+                                            <div class="flex-shrink-0 h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                                <i data-lucide="package" class="h-5 w-5 text-gray-500 dark:text-gray-400"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ producto.nombre }}</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">SKU: {{ producto.sku|default:"N/A" }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                            {{ producto.categoria.nombre }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                                            {{ producto.stock }} unidades
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${{ producto.precio|floatformat:2 }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="{% url 'productos:editar' producto.id %}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">Editar</a>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div x-show="activeTab === 'agotados'" style="display: none;">
+                        <table id="tabla-agotados" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Producto</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Precio</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for producto in productos_agotados %}
+                                <tr class="bg-red-50 dark:bg-red-900/20">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            {% if producto.imagen %}
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
+                                            </div>
+                                            {% else %}
+                                            <div class="flex-shrink-0 h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                                <i data-lucide="package" class="h-5 w-5 text-gray-500 dark:text-gray-400"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ producto.nombre }}</div>
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">SKU: {{ producto.sku|default:"N/A" }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                            {{ producto.categoria.nombre }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                            Agotado
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${{ producto.precio|floatformat:2 }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="{% url 'productos:editar' producto.id %}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">Editar</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div x-show="activeTab === 'categorias'" style="display: none;">
+                        <table id="tabla-categorias" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Productos</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor Inventario</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for categoria in categorias %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="bg-amber-100 dark:bg-amber-800/40 p-2 rounded-full mr-3">
+                                                <i data-lucide="tag" class="h-5 w-5 text-amber-600 dark:text-amber-400"></i>
+                                            </div>
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ categoria.nombre }}</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ categoria.total_productos }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${{ categoria.valor_inventario|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Botones de Acción -->
+                <div class="mt-8 flex flex-wrap gap-4">
+                    <button id="btn-imprimir" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-700 dark:hover:bg-blue-600">
+                        <i data-lucide="printer" class="h-4 w-4 mr-2"></i>
+                        Imprimir Reporte
+                    </button>
+                    <button id="btn-excel" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-700 dark:hover:bg-green-600">
+                        <i data-lucide="file-text" class="h-4 w-4 mr-2"></i>
+                        Exportar a Excel
+                    </button>
+                    <button id="btn-pdf" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-red-700 dark:hover:bg-red-600">
+                        <i data-lucide="file" class="h-4 w-4 mr-2"></i>
+                        Exportar a PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.tailwindcss.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<!-- DataTables Buttons extension -->
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+<script>
+    // Asegurarse de que el DOM esté completamente cargado
+$(document).ready(function() {
+        console.log("jQuery DOM cargado completamente");
+        
+        // Count products with low stock but not zero
+let lowStockCount = 0;
+// Seleccionar todas las filas de la tabla de productos con stock bajo
+$('#tabla-bajo-stock tbody tr').each(function() {
+    // Como estamos en la tabla de stock bajo, todas las filas ya son de productos con stock bajo
+    // Solo necesitamos asegurarnos de que el stock no sea cero verificando que no contenga "Agotado"
+    const stockText = $(this).find('td:nth-child(3)').text().trim();
+    if (!stockText.includes('Agotado')) {
+        lowStockCount += 1;
+    }
+});
+
+// Si la tabla aún no se ha renderizado (porque el tab no está activo), hacer el conteo desde los datos ocultos
+if (lowStockCount === 0) {
+    // Buscar en todo el documento por elementos que indiquen stock bajo pero no cero
+    $('.bg-amber-50, .bg-amber-900\\\/20').each(function() {
+        const stockText = $(this).find('span:contains("unidades")').text().trim();
+        if (stockText && !$(this).hasClass('bg-red-50') && !$(this).hasClass('bg-red-900/20')) {
+            lowStockCount += 1;
+        }
+    });
+}
+
+// Actualizar ambos contadores
+$('.stock-bajo-counter').text(lowStockCount);
+$('#stock-bajo-count').text(lowStockCount);
+        
+        // Store initialized tables to prevent multiple initializations
+        const initializedTables = {};
+        
+        // Function to safely initialize a DataTable
+        function safeInitDataTable(tableId, options) {
+            // Check if table exists
+            const table = $('#' + tableId);
+            if (table.length === 0) {
+                console.log('Table #' + tableId + ' not found');
+                return;
+            }
+            
+            // Check if already initialized
+            if (initializedTables[tableId]) {
+                console.log('Table #' + tableId + ' already initialized');
+                return;
+            }
+            
+            // Check if DataTable is already initialized on this element
+            if ($.fn.dataTable.isDataTable('#' + tableId)) {
+                console.log('Table #' + tableId + ' already has DataTable instance');
+                initializedTables[tableId] = true;
+                return;
+            }
+            
+            // Initialize DataTable
+            try {
+                table.DataTable(options);
+                initializedTables[tableId] = true;
+                console.log('Table #' + tableId + ' initialized successfully');
+            } catch (e) {
+                console.error('Error initializing table #' + tableId + ':', e);
+            }
+        }
+        
+        // Default DataTable options
+        // Update the defaultOptions to remove buttons from DataTables
+        const defaultOptions = {
+            responsive: true,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+            },
+            dom: 'lfrtip', // Remove 'B' (buttons) from dom
+            initComplete: function() {
+                // Aplicar estilos adicionales después de la inicialización
+                $('.dataTables_length select').addClass('border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50');
+                
+                // Mejorar la apariencia de la barra de búsqueda
+                $('.dataTables_filter input').addClass('border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 ml-2 py-2 px-4 w-64');
+                
+                // Agregar icono de búsqueda y mejorar el contenedor
+                $('.dataTables_filter').addClass('relative');
+                $('.dataTables_filter input').before('<i data-lucide="search" class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>');
+                $('.dataTables_filter input').addClass('pl-3 pr-10');
+                
+                // Mejorar estilos de paginación
+                $('.dataTables_paginate').addClass('flex items-center justify-center mt-4');
+                $('.dataTables_paginate .paginate_button').addClass('inline-flex items-center justify-center w-10 h-10 mx-1 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200');
+                $('.dataTables_paginate .paginate_button.current').addClass('bg-blue-600 text-white border-blue-600 dark:bg-blue-700 dark:border-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 font-medium');
+                $('.dataTables_paginate .paginate_button.disabled').addClass('text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-800 hover:bg-transparent dark:hover:bg-transparent cursor-not-allowed opacity-50');
+                
+                // Estilizar los botones de navegación (anterior, siguiente, etc.)
+                $('.dataTables_paginate .previous').addClass('mr-2');
+                $('.dataTables_paginate .next').addClass('ml-2');
+                
+                // Inicializar los iconos de Lucide después de que DataTables haya terminado
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        };
+        
+        // Add click handlers for your custom buttons
+        $('#btn-imprimir').on('click', function() {
+            const table = $('.dataTable').DataTable();
+            table.button('.buttons-print').trigger();
+        });
+        
+        $('#btn-excel').on('click', function() {
+            const table = $('.dataTable').DataTable();
+            table.button('.buttons-excel').trigger();
+        });
+        
+        $('#btn-pdf').on('click', function() {
+            const table = $('.dataTable').DataTable();
+            table.button('.buttons-pdf').trigger();
+        });
+        
+        // Initialize DataTables with buttons but don't show them
+        const tableButtonsOptions = $.extend(true, {}, defaultOptions, {
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'hidden'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'hidden',
+                    customize: function (doc) {
+                        // Add title and date first
+                        doc.content.splice(0, 0, {
+                            text: 'Reporte de Inventario',
+                            fontSize: 16,
+                            bold: true,
+                            margin: [0, 0, 0, 8],
+                            alignment: 'center'
+                        }, {
+                            text: 'Generado el: ' + new Date().toLocaleDateString(),
+                            fontSize: 10,
+                            margin: [0, 0, 0, 20],
+                            alignment: 'center'
+                        });
+                        
+                        // Try to add company logo if available
+                        try {
+                            // Create an image element to check if logo exists
+                            const img = new Image();
+                            img.src = '{% static "img/logo.png" %}';
+                            
+                            img.onload = function() {
+                                // If logo loads successfully, add it to the PDF
+                                doc.content.splice(0, 0, {
+                                    image: img.src,
+                                    width: 150,
+                                    alignment: 'center',
+                                    margin: [0, 0, 0, 12]
+                                });
+                            };
+                            
+                            img.onerror = function() {
+                                console.log('Company logo not found');
+                            };
+                        } catch (e) {
+                            console.log('Error loading company logo:', e);
+                        }
+                        
+                        // Style the table
+                        if (doc.content[3]) {
+                            doc.content[3].layout = {
+                                hLineWidth: function(i, node) {
+                                    return (i === 0 || i === node.table.body.length) ? 2 : 1;
+                                },
+                                vLineWidth: function(i, node) {
+                                    return (i === 0 || i === node.table.widths.length) ? 2 : 1;
+                                },
+                                hLineColor: function(i, node) {
+                                    return (i === 0 || i === node.table.body.length) ? 'black' : 'gray';
+                                },
+                                vLineColor: function(i, node) {
+                                    return (i === 0 || i === node.table.widths.length) ? 'black' : 'gray';
+                                }
+                            };
+                        }
+                    }
+                },
+                {
+                    extend: 'print',
+                    className: 'hidden'
+                }
+            ]
+        });
+        
+        // Initialize tables with the hidden buttons
+        safeInitDataTable('tabla-productos', tableButtonsOptions);
+        
+        // Initialize tables when tabs are clicked
+        $('button[data-tab="bajo"]').on('click', function() {
+            setTimeout(function() {
+                safeInitDataTable('tabla-bajo-stock', defaultOptions);
+            }, 100);
+        });
+        
+        $('button[type="button"]').on('click', function() {
+            const tab = $(this).attr('@click').replace("activeTab = '", "").replace("'", "");
+            
+            if (tab === 'todos') {
+                setTimeout(function() {
+                    safeInitDataTable('tabla-productos', defaultOptions);
+                }, 100);
+            } else if (tab === 'agotados') {
+                setTimeout(function() {
+                    safeInitDataTable('tabla-agotados', defaultOptions);
+                }, 100);
+            } else if (tab === 'categorias') {
+                setTimeout(function() {
+                    safeInitDataTable('tabla-categorias', defaultOptions);
+                }, 100);
+            }
+        });
+        
+        // Initialize the first table (productos) on page load
+        safeInitDataTable('tabla-productos', defaultOptions);
+        
+        // Remove duplicate table IDs to prevent initialization errors
+        $('[x-show="activeTab === \'bajo\'"] table').attr('id', 'tabla-bajo-stock');
+        $('[x-show="activeTab === \'agotados\'"] table').attr('id', 'tabla-agotados');
+        $('[x-show="activeTab === \'categorias\'"] table').attr('id', 'tabla-categorias');
+        // Modificar el CSS y la estructura de los controles de DataTables
+
+    // Función para aplicar estilos mejorados a los controles de DataTables
+    function applyDataTableStyles() {
+                // Crear un contenedor flex para los controles superiores si no existe
+                if ($('.dataTables_wrapper .dt-controls-top').length === 0) {
+            $('.dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter').wrapAll('<div class="dt-controls-top flex justify-between items-center mb-4 w-full"></div>');
+        }
+        $('.dataTables_filter').addClass('ml-auto');
+        // Estilizar el selector "Mostrar X registros"
+        $('.dataTables_length').addClass('mb-4 flex items-center text-gray-600 dark:text-gray-300');
+        $('.dataTables_length label').addClass('flex items-center gap-2 font-medium');
+        $('.dataTables_length select').addClass('border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200');
+        
+        // Estilizar el campo de búsqueda
+        $('.dataTables_filter').addClass('mb-4 relative');
+        $('.dataTables_filter label').addClass('flex items-center font-medium text-gray-600 dark:text-gray-300');
+        $('.dataTables_filter input')
+    .addClass('border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-md shadow-sm pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200')
+    .attr('placeholder', 'Buscar...');
+        
+
+        
+        // Estilizar info de registros (Mostrando X a Y de Z registros)
+        $('.dataTables_info').addClass('text-sm text-gray-500 dark:text-gray-400 my-4');
+        
+        // Estilizar controles de paginación
+        $('.dataTables_paginate').addClass('flex items-center justify-end my-4 select-none');
+        
+        // Aplicar estilos a los botones de paginación
+        $('.paginate_button').addClass('relative inline-flex items-center justify-center min-w-[40px] h-10 mx-1 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-md transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium text-sm');
+        $('.paginate_button.current').addClass('!bg-blue-600 !text-white !border-blue-600 dark:!bg-blue-700 dark:!border-blue-700 hover:!bg-blue-700 dark:hover:!bg-blue-800');
+        $('.paginate_button.disabled').addClass('!text-gray-400 dark:!text-gray-600 !border-gray-200 dark:!border-gray-800 hover:!bg-transparent dark:hover:!bg-transparent cursor-not-allowed opacity-50');
+        
+        // Mejorar los botones anterior/siguiente con íconos
+        if ($('.paginate_button.previous svg').length === 0) {
+            $('.paginate_button.previous').html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>');
+            $('.paginate_button.previous').addClass('flex items-center justify-center');
+        }
+        
+        if ($('.paginate_button.next svg').length === 0) {
+            $('.paginate_button.next').html('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>');
+            $('.paginate_button.next').addClass('flex items-center justify-center');
+        }
+    }
+    
+    // Aplicar estilos cuando se inicializa una tabla
+    // Actualizar las opciones de DataTable por defecto
+    $.extend(true, $.fn.dataTable.defaults, {
+        responsive: true,
+        language: {
+            search: "",
+            lengthMenu: "<span class='mr-1'>Mostrar</span> _MENU_ <span class='ml-1'>registros</span>",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            infoEmpty: "Mostrando 0 a 0 de 0 registros",
+            paginate: {
+                first: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>',
+                last: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>',
+                previous: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+                next: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
+            }
+        },
+        drawCallback: function() {
+            applyDataTableStyles();
+        },
+        initComplete: function() {
+            applyDataTableStyles();
+        }
+    });
+    
+    // Actualizar la función safeInitDataTable para incluir los nuevos estilos
+    window.safeInitDataTable = function(tableId, additionalOptions = {}) {
+        const table = $('#' + tableId);
+        if (table.length === 0) {
+            console.log('Table #' + tableId + ' not found');
+            return;
+        }
+        
+        if ($.fn.dataTable.isDataTable('#' + tableId)) {
+            console.log('Table #' + tableId + ' already has DataTable instance');
+            applyDataTableStyles(); // Aplicar estilos incluso si ya está inicializada
+            return;
+        }
+        
+        try {
+            const options = $.extend(true, {}, additionalOptions);
+            table.DataTable(options);
+            console.log('Table #' + tableId + ' initialized successfully');
+        } catch (e) {
+            console.error('Error initializing table #' + tableId + ':', e);
+        }
+    };
+    
+    // Aplicar estilos después de cualquier acción en la tabla (como cambiar de página)
+    $(document).on('draw.dt', function() {
+        applyDataTableStyles();
+    });
+    
+    // Inicializar tablas existentes con los nuevos estilos
+    if (typeof initializedTables !== 'undefined') {
+        const tableIds = ['tabla-productos', 'tabla-bajo-stock', 'tabla-agotados', 'tabla-categorias'];
+        tableIds.forEach(function(tableId) {
+            const table = $('#' + tableId);
+            if (table.length && $.fn.dataTable.isDataTable('#' + tableId)) {
+                applyDataTableStyles();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+{% block section_title %}{% if object %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold mb-4">
+            {% if object %}Editar Producto{% else %}Nuevo Producto{% endif %}
+        </h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <!-- Nombre -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium mb-1">{{ form.nombre.label }}</label>
+                    {{ form.nombre }}
+                </div>
+
+                <!-- Categoría -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium mb-1">{{ form.categoria.label }}</label>
+                    {{ form.categoria }}
+                    <a href="{% url 'productos:categoria_create' %}" class="text-sm text-emerald-600 hover:underline mt-1 block">
+                        + Crear nueva categoría
+                    </a>
+                </div>
+
+                <!-- Descripción -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium mb-1">{{ form.descripcion.label }}</label>
+                    {{ form.descripcion }}
+                </div>
+
+                <!-- Precio y Stock -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label class="block text-sm font-medium mb-1">{{ form.precio.label }}</label>
+                        {{ form.precio }}
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium mb-1">{{ form.stock.label }}</label>
+                        {{ form.stock }}
+                    </div>
+                </div>
+
+                <!-- Imagen -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium mb-1">{{ form.imagen.label }}</label>
+                    {{ form.imagen }}
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <a href="{% url 'productos:lista' %}" class="btn-secondary">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn-primary">
+                    {% if object %}Actualizar{% else %}Crear{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

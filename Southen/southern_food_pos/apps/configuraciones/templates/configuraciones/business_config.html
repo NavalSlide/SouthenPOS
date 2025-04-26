@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuración del Negocio{% endblock %}
+{% block section_title %}Configuraciones{% endblock %}
+{% block back_url %}{% url 'configuraciones:index' %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Business Configuration Form -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-emerald-600 text-white px-6 py-4">
+                <h3 class="text-2xl font-bold flex items-center">
+                    <i data-lucide="settings" class="w-6 h-6 mr-2"></i>Configuración del Negocio
+                </h3>
+            </div>
+            
+            <!-- Rest of the form remains unchanged -->
+            <div class="p-6">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div id="notification-{{ forloop.counter }}" class="{% if message.tags == 'success' %}bg-emerald-50 border-l-4 border-emerald-500{% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %} p-4 mb-6 transition-opacity duration-300">
+                            <p class="{% if message.tags == 'success' %}text-emerald-700{% elif message.tags == 'error' %}text-red-700{% else %}text-blue-700{% endif %} font-medium flex items-center">
+                                <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% else %}info{% endif %}" class="w-5 h-5 mr-2"></i>
+                                {{ message }}
+                            </p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Form content continues... -->
+                <form method="post" enctype="multipart/form-data" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <h4 class="text-xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2 flex items-center">
+                            <i data-lucide="store" class="w-5 h-5 mr-2 text-emerald-600"></i>Información del Negocio
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.nombre_negocio.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre del Negocio*
+                                </label>
+                                {{ form.nombre_negocio }}
+                                <p class="text-xs text-gray-500 mt-1">Valor actual: {{ business.nombre_negocio|default:"No configurado" }}</p>
+                                {% if form.nombre_negocio.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.nombre_negocio.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.ruc_negocio.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    RUC/NIT
+                                </label>
+                                {{ form.ruc_negocio }}
+                                <p class="text-xs text-gray-500 mt-1">Valor actual: {{ business.ruc_negocio|default:"No configurado" }}</p>
+                                {% if form.ruc_negocio.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.ruc_negocio.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label for="{{ form.direccion_negocio.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Dirección
+                                </label>
+                                {{ form.direccion_negocio }}
+                                {% if form.direccion_negocio.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.direccion_negocio.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="ciudad" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Ciudad
+                                </label>
+                                <input type="text" name="ciudad" id="id_ciudad" class="w-full rounded-lg border-2 border-gray-400 bg-white p-2 focus:border-emerald-500 focus:ring focus:ring-emerald-200 focus:ring-opacity-50" placeholder="Ciudad del negocio">
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.telefono_negocio.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Teléfono
+                                </label>
+                                {{ form.telefono_negocio }}
+                                {% if form.telefono_negocio.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.telefono_negocio.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.email_negocio.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Email
+                                </label>
+                                {{ form.email_negocio }}
+                                {% if form.email_negocio.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.email_negocio.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="logo" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Logo
+                                </label>
+                                <input type="file" name="logo" id="id_logo" class="w-full rounded-lg border-gray-300 focus:border-emerald-500 focus:ring focus:ring-emerald-200 focus:ring-opacity-50">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <h4 class="text-xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2 flex items-center">
+                            <i data-lucide="receipt" class="w-5 h-5 mr-2 text-emerald-600"></i>Configuración de Factura
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.iva_porcentaje.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Porcentaje de IVA (%)
+                                </label>
+                                {{ form.iva_porcentaje }}
+                                {% if form.iva_porcentaje.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.iva_porcentaje.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.moneda.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Símbolo de Moneda
+                                </label>
+                                {{ form.moneda }}
+                                <p class="text-xs text-gray-500 mt-1">Valor actual: {{ business.moneda|default:"$" }}</p>
+                                {% if form.moneda.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.moneda.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.mostrar_logo_en_factura.id_for_label }}" class="flex items-center text-sm font-medium text-gray-700 mb-1">
+                                    {{ form.mostrar_logo_en_factura }}
+                                    <span class="ml-2">Mostrar Logo en Factura</span>
+                                </label>
+                                {% if form.mostrar_logo_en_factura.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.mostrar_logo_en_factura.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.formato_fecha.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Formato de Fecha
+                                </label>
+                                {{ form.formato_fecha }}
+                                <p class="text-xs text-gray-500 mt-1">Ejemplo: d/m/Y = 31/12/2023, Y-m-d = 2023-12-31</p>
+                                {% if form.formato_fecha.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.formato_fecha.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label for="{{ form.mensaje_factura.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Mensaje en Factura
+                                </label>
+                                {{ form.mensaje_factura }}
+                                {% if form.mensaje_factura.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.mensaje_factura.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label for="{{ form.politica_devolucion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Política de Devolución
+                                </label>
+                                {{ form.politica_devolucion }}
+                                {% if form.politica_devolucion.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.politica_devolucion.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center">
+                            <i data-lucide="save" class="w-5 h-5 mr-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

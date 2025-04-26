@@ -1,0 +1,2 @@
+./ngrok.exe http 8000
+https://c839-157-100-107-12.ngrok-free.app/dashboard/
